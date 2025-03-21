@@ -1,73 +1,61 @@
--- GreeXklib - A script library for Gree X Executor
--- Created by Gree, powered by xAI's Grok
--- Version 1.0
+-- GreeXklib.lua
+-- A script library for Gree X Executor, compatible with Nezur
+-- Created by Gree, enhanced with help from xAI's Grok
+-- Version 1.2
 
 local GreeXklib = {}
 GreeXklib.__index = GreeXklib
 
 -- Library metadata
 GreeXklib.Name = "GreeXklib"
-GreeXklib.Version = "1.0"
+GreeXklib.Version = "1.2"
 GreeXklib.Author = "Gree"
 
 -- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
-
--- Local player
 local LocalPlayer = Players.LocalPlayer
 
--- Notification function (to integrate with your Fluent UI)
+-- Notification function (compatible with both Gree X and Nezur)
 local function Notify(title, content, duration)
-    -- Assuming your Gree X executor has a global WINDOW object from Fluent UI
+    duration = duration or 5
+    -- Try Gree X's Fluent UI first
     if _G.WINDOW then
         _G.WINDOW:Notify({
             Title = title,
             Content = content,
-            Duration = duration or 5
+            Duration = duration
         })
-    else
-        warn("[GreeXklib] Notification failed: WINDOW object not found.")
+        return
     end
+    -- Fallback to Nezur's notification system (if available)
+    if _G.Nezur and _G.Nezur.Notify then
+        _G.Nezur.Notify(title, content, duration)
+        return
+    end
+    -- Fallback to console output
+    warn(string.format("[GreeXklib] %s: %s", title, content))
 end
 
--- Safety check for UNC/SUNC (simplified for now)
+-- Safety check (aligned with Nezur's safety standards)
 local function IsSafeToExecute()
-    -- Placeholder for your UNC/SUNC Level 3 checks
-    -- In a real implementation, you'd check for Roblox's anti-cheat flags
-    return true -- For now, assume it's safe
-end
-
--- Function to load a script from a URL (for script hub integration)
-function GreeXklib:LoadScript(url)
-    if not IsSafeToExecute() then
-        Notify("Error", "Unsafe to execute script at this time.", 5)
-        return false
-    end
-
+    -- Placeholder for UNC/SUNC Level 3 checks (Gree X specific)
+    -- Nezur typically checks for anti-cheat flags, so let's simulate that
     local success, result = pcall(function()
-        return HttpService:GetAsync(url)
+        -- Example: Check if getrawmetatable is accessible (common anti-cheat detection)
+        return getrawmetatable(game) ~= nil
     end)
-
-    if success then
-        local scriptFunc, err = loadstring(result)
-        if scriptFunc then
-            scriptFunc()
-            Notify("Success", "Script loaded from " .. url, 5)
-            return true
-        else
-            Notify("Error", "Failed to compile script: " .. tostring(err), 5)
-            return false
-        end
-    else
-        Notify("Error", "Failed to fetch script: " .. tostring(result), 5)
+    if not success then
+        Notify("Safety Check Failed", "Anti-cheat detection triggered.", 5)
         return false
     end
+    -- Add your UNC/SUNC Level 3 logic here
+    return true
 end
 
 -- Teleport function
-function GreeXklib:TeleportTo(position)
+function GreeXklib:Teleport(position)
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         Notify("Error", "Character not found for teleport.", 5)
         return false
@@ -83,20 +71,22 @@ function GreeXklib:TeleportTo(position)
     return true
 end
 
--- ESP function (highlight players)
-function GreeXklib:EnableESP()
+-- ESP function with customization
+function GreeXklib:EnableESP(color)
     if not IsSafeToExecute() then
         Notify("Error", "Unsafe to enable ESP at this time.", 5)
         return false
     end
 
+    color = color or Color3.fromRGB(255, 0, 0) -- Default to red
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local highlight = Instance.new("Highlight")
-            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Red highlight
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- White outline
+            highlight.FillColor = color
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
             highlight.Adornee = player.Character
             highlight.Parent = player.Character
+            highlight.Name = "GreeXklibESP"
         end
     end
 
@@ -104,23 +94,94 @@ function GreeXklib:EnableESP()
     return true
 end
 
--- Auto-farm example (simplified, game-specific logic needed)
+-- Disable ESP function
+function GreeXklib:DisableESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character then
+            local highlight = player.Character:FindFirstChild("GreeXklibESP")
+            if highlight then
+                highlight:Destroy()
+            end
+        end
+    end
+
+    Notify("Success", "ESP disabled for all players.", 5)
+    return true
+end
+
+-- Load script from URL (compatible with Nezur's script execution)
+function GreeXklib:LoadScript(url)
+    if not IsSafeToExecute() then
+        Notify("Error", "Unsafe to execute script at this time.", 5)
+        return false
+    end
+
+    local success, result = pcall(function()
+        return HttpService:GetAsync(url)
+    end)
+
+    if success then
+        local scriptFunc, err = loadstring(result)
+        if scriptFunc then
+            -- Nezur often wraps script execution in a pcall for safety
+            local execSuccess, execErr = pcall(scriptFunc)
+            if execSuccess then
+                Notify("Success", "Script loaded from " .. url, 5)
+                return true
+            else
+                Notify("Error", "Script execution failed: " .. tostring(execErr), 5)
+                return false
+            end
+        else
+            Notify("Error", "Failed to compile script: " .. tostring(err), 5)
+            return false
+        end
+    else
+        Notify("Error", "Failed to fetch script: " .. tostring(result), 5)
+        return false
+    end
+end
+
+-- Auto-farm placeholder
 function GreeXklib:StartAutoFarm()
     if not IsSafeToExecute() then
         Notify("Error", "Unsafe to start auto-farm at this time.", 5)
         return false
     end
 
-    -- Example: Repeatedly click a part in the game (e.g., for farming resources)
     spawn(function()
         while true do
-            -- Replace with game-specific logic (e.g., fire a remote event)
             if not LocalPlayer.Character then break end
-            wait(1) -- Adjust delay as needed
+            -- Add game-specific farming logic here
+            wait(1)
         end
     end)
 
-    Notify("Success", "Auto-farm started. (Note: This is a placeholder.)", 5)
+    Notify("Success", "Auto-farm started. (Placeholder)", 5)
+    return true
+end
+
+-- Blox Fruits auto-farm
+function GreeXklib:BloxFruitsAutoFarm()
+    if game.PlaceId ~= 2753915549 then
+        Notify("Error", "This function only works in Blox Fruits.", 5)
+        return false
+    end
+
+    if not IsSafeToExecute() then
+        Notify("Error", "Unsafe to start Blox Fruits auto-farm.", 5)
+        return false
+    end
+
+    spawn(function()
+        while true do
+            if not LocalPlayer.Character then break end
+            self:Teleport(Vector3.new(1000, 50, 1000)) -- Replace with actual fruit spawn coordinates
+            wait(5)
+        end
+    end)
+
+    Notify("Success", "Blox Fruits auto-farm started!", 5)
     return true
 end
 
@@ -131,5 +192,4 @@ function GreeXklib.new()
     return self
 end
 
--- Return the library
 return GreeXklib
